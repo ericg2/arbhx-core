@@ -1,9 +1,9 @@
+use async_trait::async_trait;
+use chrono::{DateTime, Local};
 use std::fmt::Debug;
 use std::io;
 use std::path::Path;
-use async_trait::async_trait;
-use chrono::{DateTime, Local};
-use crate::DataAppend;
+use tokio::io::{AsyncSeek, AsyncWrite};
 
 /// Writable virtual filesystem interface.
 ///
@@ -66,5 +66,24 @@ pub trait VfsWriter: Send + Sync + 'static + Debug + Unpin {
     async fn copy_to(&self, old: &Path, new: &Path) -> io::Result<()>;
 
     /// Opens the specified path in append mode.
-    async fn open_append(&self, item: &Path, truncate: bool) -> io::Result<Box<dyn DataAppend>>;
+    async fn open_write_append(
+        &self,
+        item: &Path,
+        overwrite: bool,
+    ) -> io::Result<Box<dyn DataWrite>>;
+
+    /// Opens the specified path in full mode if applicable.
+    async fn open_write_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataWriteSeek>>>;
 }
+
+#[async_trait]
+pub trait DataWrite: AsyncWrite + Send + Sync + 'static + Debug + Unpin {
+    /// Finalize and close the stream.
+    ///
+    /// # Errors
+    /// Returns an error if the stream cannot be properly finalized.
+    async fn close(&mut self) -> io::Result<()>;
+}
+
+#[async_trait]
+pub trait DataWriteSeek: DataWrite + AsyncSeek {}

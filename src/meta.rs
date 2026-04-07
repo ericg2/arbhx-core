@@ -1,4 +1,3 @@
-use bytesize::ByteSize;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -15,6 +14,17 @@ pub struct Metadata {
     pub(crate) atime: Option<DateTime<Utc>>,
     pub(crate) ctime: Option<DateTime<Utc>>,
     pub(crate) size: u64,
+}
+
+/// Represents the current usage for a VFS.
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DataUsage {
+    /// The allocated bytes for the store.
+    pub max_bytes: u64,
+    /// The used bytes for the store.
+    pub used_bytes: u64,
+    /// The free bytes for the store.
+    pub free_bytes: u64
 }
 
 impl Metadata {
@@ -60,8 +70,8 @@ impl Metadata {
 
     /// # Returns
     /// The [`ByteSize`] of this node.
-    pub fn size(&self) -> ByteSize {
-        ByteSize(self.size)
+    pub fn size(&self) -> u64 {
+        self.size
     }
 
     /// Converts [`std::fs::Metadata`] into a valid [`Metadata`] struct.
