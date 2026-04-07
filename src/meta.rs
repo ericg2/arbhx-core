@@ -3,10 +3,12 @@ use serde_derive::{Deserialize, Serialize};
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
+use derive_setters::Setters;
 
 /// Represents Metadata for a returned file. This is a
 /// data-only `struct`, with no operations as a result.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Setters)]
+#[setters(prefix = "set_", into)]
 pub struct Metadata {
     pub(crate) path: PathBuf,
     pub(crate) is_dir: bool,

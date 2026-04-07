@@ -45,8 +45,10 @@ pub trait VfsReader: Send + Sync + 'static + Debug + Unpin {
     ) -> io::Result<Arc<dyn SizedQuery>>;
 }
 
-#[async_trait]
-pub trait DataRead: AsyncRead + Send + Sync + 'static + Debug + Unpin {}
+pub trait DataRead: AsyncRead + Send + Sync + Unpin + Debug {}
 
-#[async_trait]
 pub trait DataReadSeek: DataRead + AsyncSeek {}
+
+impl<T> DataRead for T where T: AsyncRead + Send + Sync + Unpin + Debug {}
+
+impl<T> DataReadSeek for T where T: DataRead + AsyncSeek {}
