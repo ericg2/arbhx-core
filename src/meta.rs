@@ -7,7 +7,7 @@ use derive_setters::Setters;
 
 /// Represents Metadata for a returned file. This is a
 /// data-only `struct`, with no operations as a result.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Setters)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Setters, Default)]
 #[setters(prefix = "set_", into)]
 pub struct Metadata {
     pub(crate) path: PathBuf,
