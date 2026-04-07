@@ -1,5 +1,6 @@
 use crate::blocking::{VfsReaderCompat, VfsWriterCompat};
 use crate::{DataUsage, Metadata};
+use std::fmt::Debug;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -13,7 +14,7 @@ pub trait SizedQueryCompat: Send + Sync {
     fn stream(self: Arc<Self>) -> io::Result<Box<MetaStream>>;
 }
 
-pub trait VfsBackendCompat: Eq + PartialEq {
+pub trait VfsBackendCompat: Send + Sync + Debug + 'static {
     /// Returns the ID of the VFS backend.
     fn id(&self) -> Uuid;
 

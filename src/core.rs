@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use async_trait::async_trait;
 use futures_lite::Stream;
 use std::io;
@@ -17,7 +18,7 @@ pub trait SizedQuery: Send + Sync {
 }
 
 #[async_trait]
-pub trait VfsBackend: Eq + PartialEq {
+pub trait VfsBackend: Send + Sync + 'static + Debug + Unpin {
     /// Returns the ID of the VFS backend.
     fn id(&self) -> Uuid;
 
