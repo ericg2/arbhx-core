@@ -1,5 +1,6 @@
-use crate::blocking::{VfsReaderCompat, VfsWriterCompat};
-use crate::{DataUsage, Metadata};
+use crate::blocking::{DataReadSeekCompat, DataWriteSeekCompat, VfsReaderCompat, VfsWriterCompat};
+use crate::{DataUsage, Metadata, VfsReader, VfsWriter};
+use async_trait::async_trait;
 use std::fmt::Debug;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -30,6 +31,18 @@ pub trait VfsBackendCompat: Send + Sync + Debug + 'static {
     /// Attempts to upgrade to a [`VfsWriter`].
     fn writer(self: Arc<Self>) -> Option<Arc<dyn VfsWriterCompat>>;
 
+    /// Attempts to upgrade to a [`VfsFullCompat`].
+    fn full(self: Arc<Self>) -> Option<Arc<dyn VfsFullCompat>>;
+
     /// Retrieves usage information if applicable.
     fn get_usage(&self) -> io::Result<Option<DataUsage>>;
 }
+
+#[async_trait]
+pub trait VfsFullCompat: VfsReaderCompat + VfsWriterCompat {
+    /// Attempts to open the path in full mode.
+    async fn open_full(&self) -> io::Result<Box<dyn DataFullCompat>>;
+}
+
+#[async_trait]
+pub trait DataFullCompat: DataReadSeekCompat + DataWriteSeekCompat {}

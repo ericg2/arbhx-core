@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::{DataUsage, Metadata, VfsReader, VfsWriter};
+use crate::{DataReadSeek, DataUsage, DataWriteSeek, Metadata, VfsReader, VfsWriter};
 
 pub type MetaStream = dyn Stream<Item = io::Result<Metadata>> + Send;
 
@@ -34,6 +34,18 @@ pub trait VfsBackend: Send + Sync + 'static + Debug + Unpin {
     /// Attempts to upgrade to a [`VfsWriter`].
     fn writer(self: Arc<Self>) -> Option<Arc<dyn VfsWriter>>;
 
+    /// Attempts to upgrade to a [`VfsFull`].
+    fn full(self: Arc<Self>) -> Option<Arc<dyn VfsFull>>;
+
     /// Retrieves usage information if applicable.
     async fn get_usage(&self) -> io::Result<Option<DataUsage>>;
 }
+
+#[async_trait]
+pub trait VfsFull: VfsReader + VfsWriter {
+    /// Attempts to open the path in full mode.
+    async fn open_full(&self) -> io::Result<Box<dyn DataFull>>;
+}
+
+#[async_trait]
+pub trait DataFull: DataReadSeek + DataWriteSeek {}
