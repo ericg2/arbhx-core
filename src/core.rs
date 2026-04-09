@@ -44,7 +44,7 @@ pub trait VfsBackend: Send + Sync + 'static + Debug + Unpin {
 #[async_trait]
 pub trait VfsFull: VfsReader + VfsWriter {
     /// Attempts to open the path in full mode.
-    async fn open_full_random(&self) -> io::Result<Option<Box<dyn DataFull>>>;
+    async fn open_full_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataFull>>>;
 }
 
 #[async_trait]

@@ -41,7 +41,7 @@ pub trait VfsBackendCompat: Send + Sync + Debug + 'static {
 #[async_trait]
 pub trait VfsFullCompat: VfsReaderCompat + VfsWriterCompat {
     /// Attempts to open the path in full mode.
-    async fn open_full_random(&self) -> io::Result<Option<Box<dyn DataFullCompat>>>;
+    async fn open_full_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataFullCompat>>>;
 }
 
 #[async_trait]
