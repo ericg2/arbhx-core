@@ -1,46 +1,131 @@
-use crate::blocking::{DataReadSeekCompat, DataWriteSeekCompat, VfsReaderCompat, VfsWriterCompat};
-use crate::{DataUsage, Metadata, VfsReader, VfsWriter};
-use async_trait::async_trait;
+use crate::blocking::{VfsFullCompat, VfsReaderCompat, VfsSeekWriterCompat, VfsWriterCompat};
+use crate::{DataUsage, Metadata, VfsFull, VfsReader, VfsSeekWriter, VfsWriter};
+
 use std::fmt::Debug;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Iterator type for yielding metadata results.
+///
+/// Each item represents a single filesystem entry produced by a query.
 pub type MetaStream = dyn Iterator<Item = io::Result<Metadata>> + Send;
 
+/// A query that may optionally know its total result size.
+///
+/// This mirrors the async [`SizedQuery`] trait but uses blocking iteration
+/// instead of async streaming.
+///
+/// Used for directory listings, search results, and pagination-like APIs.
 pub trait SizedQueryCompat: Send + Sync {
+    /// Returns the total number of results if known.
+    ///
+    /// # Returns
+    /// * `Ok(Some(n))` → size known
+    /// * `Ok(None)` → size unknown or expensive to compute
+    ///
+    /// # Errors
+    /// Backend failure while computing size.
     fn size(self: Arc<Self>) -> io::Result<Option<u64>>;
 
+    /// Returns an iterator over results.
+    ///
+    /// # Returns
+    /// Iterator producing [`Metadata`] entries.
+    ///
+    /// # Errors
+    /// If iteration setup fails.
     fn stream(self: Arc<Self>) -> io::Result<Box<MetaStream>>;
 }
 
-pub trait VfsBackendCompat: Send + Sync + Debug + 'static {
-    /// Returns the ID of the VFS backend.
+/// Core backend trait for a virtual filesystem.
+///
+/// A `VfsBackend` represents a storage provider (e.g., local filesystem,
+/// cloud storage, FTP, in-memory store) and exposes its capabilities
+/// through optional trait upgrades.
+///
+/// Backends are capability-based:
+/// - Not all backends support all operations
+/// - Consumers must check for supported interfaces via the upgrade methods
+///
+/// # Capability Model
+/// Each `*_()` method attempts to "upgrade" the backend into a more specific
+/// interface:
+/// - [`VfsReader`] → read-only access
+/// - [`VfsWriter`] → basic write support
+/// - [`VfsSeekWriter`] → random-access write support
+/// - [`VfsFull`] → full read/write/seek support
+///
+/// Returning `None` indicates the capability is not supported.
+///
+/// # Thread Safety
+/// Implementations must be safe to use across threads.
+pub trait VfsBackendCompat: Send + Sync + 'static + Debug {
+    /// Returns a unique identifier for this backend instance.
+    ///
+    /// This ID should remain stable for the lifetime of the backend and can
+    /// be used for caching, tracking, or distinguishing multiple backends.
     fn id(&self) -> Uuid;
 
-    /// Returns the name of the VFS backend.
-    fn name(&self) -> &str;
-
-    /// Convert a relative path into a backend-specific absolute path.
+    /// Convert a virtual/relative path into a backend-specific absolute path.
+    ///
+    /// # Arguments
+    /// * `item` - The virtual path provided by the caller
+    ///
+    /// # Returns
+    /// A backend-specific path suitable for internal use.
+    ///
+    /// # Notes
+    /// * This does not guarantee the path exists.
+    /// * Implementations may normalize, prefix, or remap paths.
     fn realpath(&self, item: &Path) -> PathBuf;
 
-    /// Attempts to upgrade to a [`VfsReader`].
+    /// Attempts to upgrade this backend to a read-only interface.
+    ///
+    /// # Returns
+    /// * `Some` if read operations are supported
+    /// * `None` if the backend does not support reading
     fn reader(self: Arc<Self>) -> Option<Arc<dyn VfsReaderCompat>>;
 
-    /// Attempts to upgrade to a [`VfsWriter`].
+    /// Attempts to upgrade this backend to a basic writable interface.
+    ///
+    /// # Returns
+    /// * `Some` if write operations are supported
+    /// * `None` if the backend does not support writing.
+    ///
+    /// # Notes
+    /// This does not guarantee support for random-access writes.
     fn writer(self: Arc<Self>) -> Option<Arc<dyn VfsWriterCompat>>;
 
-    /// Attempts to upgrade to a [`VfsFullCompat`].
+    /// Attempts to upgrade this backend to a random-access writable interface.
+    ///
+    /// # Returns
+    /// * `Some` if seekable writes are supported
+    /// * `None` if only sequential writes (or no writes) are supported
+    ///
+    /// # Notes
+    /// This is a stronger capability than [`VfsWriter`].
+    fn writer_seek(self: Arc<Self>) -> Option<Arc<dyn VfsSeekWriterCompat>>;
+
+    /// Attempts to upgrade this backend to a full-featured interface.
+    ///
+    /// # Returns
+    /// * `Some` if full read/write/seek functionality is supported
+    /// * `None` otherwise
+    ///
+    /// # Notes
+    /// This is the most complete capability level and typically implies
+    /// support for all other interfaces.
     fn full(self: Arc<Self>) -> Option<Arc<dyn VfsFullCompat>>;
 
-    /// Retrieves usage information if applicable.
+    /// Retrieves storage usage information if available.
+    ///
+    /// # Returns
+    /// * `Ok(Some(DataUsage))` if usage information is supported
+    /// * `Ok(None)` if the backend does not provide usage data
+    ///
+    /// # Errors
+    /// Returns an error if the usage query fails.
     fn get_usage(&self) -> io::Result<Option<DataUsage>>;
 }
-
-pub trait VfsFullCompat: VfsReaderCompat + VfsWriterCompat {
-    /// Attempts to open the path in full mode.
-    fn open_full_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataFullCompat>>>;
-}
-
-pub trait DataFullCompat: DataReadSeekCompat + DataWriteSeekCompat {}

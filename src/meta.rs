@@ -1,97 +1,87 @@
 use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
-use std::ffi::OsStr;
-use std::path::Path;
-use std::path::PathBuf;
 use derive_setters::Setters;
+use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
+use std::path::{Path, PathBuf};
 
-/// Represents Metadata for a returned file. This is a
-/// data-only `struct`, with no operations as a result.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Setters, Default)]
+/// File or directory metadata returned by a VFS backend.
+///
+/// `Metadata` is a read-only snapshot describing a filesystem entry at a
+/// specific point in time. It does not provide any mutation capabilities.
+///
+/// This structure is designed to be lightweight and transferable across
+/// different backend implementations (local filesystem, remote storage,
+/// archives, etc.).
+#[derive(
+    Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Setters, Default,
+)]
 #[setters(prefix = "set_", into)]
 pub struct Metadata {
     pub(crate) path: PathBuf,
     pub(crate) is_dir: bool,
+    pub(crate) ctime: Option<DateTime<Utc>>,
     pub(crate) mtime: Option<DateTime<Utc>>,
     pub(crate) atime: Option<DateTime<Utc>>,
-    pub(crate) ctime: Option<DateTime<Utc>>,
     pub(crate) size: u64,
 }
 
-/// Represents the current usage for a VFS.
+/// Storage usage statistics for a VFS backend.
+///
+/// Represents capacity and utilization information when supported by the
+/// underlying storage system.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub struct DataUsage {
-    /// The allocated bytes for the store.
+    /// Total allocated capacity in bytes.
     pub max_bytes: u64,
-    /// The used bytes for the store.
+
+    /// Currently used storage in bytes.
     pub used_bytes: u64,
-    /// The free bytes for the store.
-    pub free_bytes: u64
+
+    /// Remaining available storage in bytes.
+    pub free_bytes: u64,
 }
 
 impl Metadata {
-    /// # Returns
-    /// The [`Path::file_name`] of this file.
+    /// Returns the final component of the path (file or directory name).
+    ///
+    /// If the path has no file name, returns an empty value.
     pub fn name(&self) -> &OsStr {
         self.path.file_name().unwrap_or_default()
     }
 
-    /// # Returns
-    /// The full, absolute [`Path`] of the node.
+    /// Returns the full virtual path of the entry.
     pub fn path(&self) -> &Path {
         &self.path
     }
 
-    /// # Returns
-    /// If the [`Path`] is a directory.
+    /// Returns `true` if this entry is a directory.
     pub fn is_dir(&self) -> bool {
         self.is_dir
     }
 
-    /// # Returns
-    /// If the [`Path`] is a file (not a directory).
+    /// Returns `true` if this entry is a file.
     ///
-    /// # Important
-    /// This backend does <b>NOT support symbolic links</b>. As a result, this
-    /// function is simply the inverse of [`is_dir`] - with no special processing.
+    /// This is defined as the logical inverse of [`is_dir`].
+    /// Symbolic links are not supported by this system.
     pub fn is_file(&self) -> bool {
         !self.is_dir
     }
 
-    /// # Returns
-    /// The last modified [`DateTime`] if supported.
+    /// Returns the last modification time, if available.
     pub fn mtime(&self) -> Option<DateTime<Utc>> {
-        self.mtime.clone()
+        self.mtime
     }
 
-    /// # Returns
-    /// The last accessed [`DateTime`] if supported.
+    /// Returns the last access time, if available.
     pub fn atime(&self) -> Option<DateTime<Utc>> {
-        self.atime.clone()
+        self.atime
     }
 
-    /// # Returns
-    /// The [`ByteSize`] of this node.
+    /// Returns the size of the entry in bytes.
+    ///
+    /// For directories, this value is backend-defined and may not reflect
+    /// actual disk usage.
     pub fn size(&self) -> u64 {
         self.size
-    }
-
-    /// Converts [`std::fs::Metadata`] into a valid [`Metadata`] struct.
-    ///
-    /// # Arguments
-    /// * `path` - The [`Path`] to represent.
-    /// * `meta` - The [`std::fs::Metadata`] to convert.
-    ///
-    /// # Returns
-    /// A valid [`Metadata`] struct for the conversion.
-    pub(crate) fn from_io(path: impl AsRef<Path>, meta: std::fs::Metadata) -> Self {
-        Self {
-            path: path.as_ref().to_path_buf(),
-            is_dir: meta.is_dir(),
-            mtime: meta.modified().ok().map(|x| x.into()),
-            atime: meta.accessed().ok().map(|x| x.into()),
-            ctime: meta.created().ok().map(|x| x.into()),
-            size: meta.len(),
-        }
     }
 }
