@@ -149,14 +149,13 @@ pub trait VfsSeekWriterCompat: VfsWriterCompat {
     /// * `path` - Path to the file
     ///
     /// # Returns
-    /// * `Ok(Some(writer))` if seekable writes are supported
-    /// * `Ok(None)` if only sequential writes are available
+    /// A writable + seekable stream.
     ///
     /// # Errors
     /// Returns an error if:
     /// - the file cannot be opened
     /// - permissions prevent writing
-    fn open_write_seek(&self, path: &Path) -> io::Result<Option<Box<dyn DataWriteSeekCompat>>>;
+    fn open_write_seek(&self, path: &Path) -> io::Result<Box<dyn DataWriteSeekCompat>>;
 }
 
 /// Full filesystem interface combining read and advanced write capabilities.
@@ -172,14 +171,13 @@ pub trait VfsFullCompat: VfsReaderCompat + VfsSeekWriterCompat {
     /// * `path` - Path to the file
     ///
     /// # Returns
-    /// * `Ok(Some(handle))` if full access is supported
-    /// * `Ok(None)` if the backend does not support full access
+    /// A [`DataFullCompat`] handle.
     ///
     /// # Errors
     /// Returns an error if:
     /// - the file cannot be opened
     /// - permissions prevent access
-    fn open_full_seek(&self, path: &Path) -> io::Result<Option<Box<dyn DataFullCompat>>>;
+    fn open_full_seek(&self, path: &Path) -> io::Result<Box<dyn DataFullCompat>>;
 }
 
 /// Writable byte stream abstraction (blocking).

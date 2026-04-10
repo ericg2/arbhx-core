@@ -168,14 +168,13 @@ pub trait VfsFull: VfsReader + VfsSeekWriter {
     /// * `item` - Path to the file
     ///
     /// # Returns
-    /// * `Ok(Some(...))` if full access is supported
-    /// * `Ok(None)` if the backend does not support full access for this file
+    /// A [`DataFull`] handle.
     ///
     /// # Errors
     /// Returns an error if:
     /// * The file cannot be opened
     /// * Permissions prevent access
-    async fn open_full_seek(&self, item: &Path) -> io::Result<Option<Box<dyn DataFull>>>;
+    async fn open_full_seek(&self, item: &Path) -> io::Result<Box<dyn DataFull>>;
 }
 
 /// Writable stream abstraction.

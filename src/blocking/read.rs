@@ -51,13 +51,12 @@ pub trait VfsReaderCompat: Send + Sync + 'static + Debug {
     ///
     /// # Returns
     ///
-    /// * `Ok(Some(reader))` if the backend supports seekable reads
-    /// * `Ok(None)` if only sequential reads are supported
+    /// The [`DataReadSeekCompat`] handle.
     ///
     /// # Errors
     ///
     /// Returns an error if the path does not exist or cannot be opened.
-    fn open_read_seek(&self, item: &Path) -> io::Result<Option<Box<dyn DataReadSeekCompat>>>;
+    fn open_read_seek(&self, item: &Path) -> io::Result<Box<dyn DataReadSeekCompat>>;
 
     /// Retrieves metadata for a path without opening it.
     ///
