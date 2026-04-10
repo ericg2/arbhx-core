@@ -38,11 +38,9 @@ pub trait VfsBackendCompat: Send + Sync + Debug + 'static {
     fn get_usage(&self) -> io::Result<Option<DataUsage>>;
 }
 
-#[async_trait]
 pub trait VfsFullCompat: VfsReaderCompat + VfsWriterCompat {
     /// Attempts to open the path in full mode.
-    async fn open_full_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataFullCompat>>>;
+    fn open_full_random(&self, item: &Path) -> io::Result<Option<Box<dyn DataFullCompat>>>;
 }
 
-#[async_trait]
 pub trait DataFullCompat: DataReadSeekCompat + DataWriteSeekCompat {}
