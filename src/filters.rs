@@ -5,7 +5,6 @@
 ///
 /// This is typically used in directory listings and search operations
 /// to reduce result sets before traversal or streaming begins.
-#[non_exhaustive]
 #[derive(serde::Deserialize, serde::Serialize, Default, Clone, Debug)]
 pub struct FilterOptions {
     /// Glob patterns used to include or exclude files and directories.
