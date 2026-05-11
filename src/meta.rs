@@ -77,6 +77,9 @@ impl Metadata {
         self.atime
     }
 
+    /// Returns the last create time, if available.
+    pub fn ctime(&self) -> Option<DateTime<Utc>> { self.ctime }
+
     /// Returns the size of the entry in bytes.
     ///
     /// For directories, this value is backend-defined and may not reflect
